@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#1E3A5F</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="background">#FDF8F3</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#1C1B1F</color>
+    <color name="hebrew_text">#2D2A26</color>
+    <color name="transliteration">#5C5550</color>
+</resources>
