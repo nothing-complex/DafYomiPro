@@ -6,18 +6,20 @@ import java.time.temporal.ChronoUnit
 /**
  * DafCalculator computes the current Daf Yomi position in the 7.5-year cycle.
  *
- * The Daf Yomi cycle started January 2, 2020 (12th Siyum Hashas) and consists of
- * 2,711 daf across 38 masechtot. The cycle completes approximately July 2027.
+ * The Daf Yomi 14th cycle started January 4, 2020 (verified via dafyomi.co.il calendar
+ * which shows Jan 5, 2020 = Berachot 2, so Jan 4 = Berachot 1).
+ *
+ * The cycle consists of 2,711 daf across 38 masechtot and completes approximately July 2027.
  *
  * Algorithm:
- * 1. daysSinceStart = (today - Jan 2, 2020).days
+ * 1. daysSinceStart = (today - Jan 4, 2020).days
  * 2. dafIndex = daysSinceStart % 2711  // 0-indexed position in cycle
  * 3. Map dafIndex to masechet using cumulative daf boundaries
  */
 object DafCalculator {
 
-    // Cycle start: January 2, 2020 (12th Siyum Hashas)
-    private val CYCLE_START = LocalDate.of(2020, 1, 2)
+    // Cycle start: January 4, 2020 (verified: dafyomi.co.il shows Jan 5 = Berachot 2)
+    private val CYCLE_START = LocalDate.of(2020, 1, 4)
     private const val CYCLE_LENGTH = 2711
 
     /**
