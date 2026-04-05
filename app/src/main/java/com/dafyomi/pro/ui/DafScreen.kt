@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,10 +72,10 @@ fun DafScreen(
             .fillMaxSize()
             .background(dafColors.gradientBrush)
     ) {
-        // Subtle background animation (sand dunes or stars)
+        // Background animation (non-interactive - draws behind)
         BackgroundAnimation(dafColors = dafColors)
 
-        // Settings icon in top-right
+        // Settings icon - separate Box to ensure touch works
         SettingsIcon(
             dafColors = dafColors,
             onClick = { showSettings = true }
@@ -114,41 +115,19 @@ private fun SettingsIcon(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, end = 16.dp)
-            .clickable { onClick() },
-        contentAlignment = Alignment.TopEnd
+            .height(56.dp)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.CenterEnd
     ) {
-        Canvas(
-            modifier = Modifier.size(44.dp)  // Larger tappable area
-        ) {
-            val lineHeight = 2.5.dp.toPx()
-            val spacing = 7.dp.toPx()
-            val strokeWidth = 2.dp.toPx()
-            val offsetX = 8.dp.toPx()
-
-            // Three horizontal lines (hamburger style)
-            drawLine(
-                color = dafColors.textSecondary,
-                start = Offset(offsetX, spacing),
-                end = Offset(size.width - offsetX, spacing),
-                strokeWidth = strokeWidth,
-                cap = StrokeCap.Round
-            )
-            drawLine(
-                color = dafColors.textSecondary,
-                start = Offset(offsetX, spacing * 2),
-                end = Offset(size.width - offsetX, spacing * 2),
-                strokeWidth = strokeWidth,
-                cap = StrokeCap.Round
-            )
-            drawLine(
-                color = dafColors.textSecondary,
-                start = Offset(offsetX, spacing * 3),
-                end = Offset(size.width - offsetX, spacing * 3),
-                strokeWidth = strokeWidth,
-                cap = StrokeCap.Round
-            )
-        }
+        // Use text symbol for hamburger - more reliable touch
+        Text(
+            text = "☰",
+            fontSize = 24.sp,
+            color = dafColors.textSecondary,
+            modifier = Modifier
+                .size(44.dp)
+                .clickable { onClick() }
+        )
     }
 }
 
@@ -639,11 +618,15 @@ private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafCo
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Flat share button - clickable wrapper
+        // Flat share button - subtle border, minimalist style
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(dafColors.sand)
+                .border(
+                    width = 1.dp,
+                    color = dafColors.divider,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                )
                 .clickable {
                     try {
                         val intent = android.content.Intent().apply {
