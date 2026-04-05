@@ -1,5 +1,11 @@
 package com.dafyomi.pro.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,11 +32,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,6 +49,8 @@ import androidx.compose.ui.unit.sp
 import com.dafyomi.pro.domain.DafData
 import com.dafyomi.pro.ui.theme.LocalDafColors
 import com.dafyomi.pro.ui.theme.ThemeMode
+import kotlin.math.sin
+import kotlin.random.Random
 
 // ============================================================================
 // MINIMALIST FLAT DESIGN - SAND, STONE & SKY
@@ -58,6 +70,9 @@ fun DafScreen(
             .fillMaxSize()
             .background(dafColors.gradientBrush)
     ) {
+        // Subtle background animation (sand dunes or stars)
+        BackgroundAnimation(dafColors = dafColors)
+
         // Settings icon in top-right
         SettingsIcon(
             dafColors = dafColors,
@@ -299,7 +314,7 @@ private fun DafContent(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColo
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)  // Reduced from 40dp per research
     ) {
-        Spacer(modifier = Modifier.height(48.dp))  // Reduced from 64dp
+        Spacer(modifier = Modifier.height(24.dp))  // Reduced - status bar handled in MainActivity
 
         // Section 1: Current Daf (large typography focus)
         DafSection(daf = daf, dafColors = dafColors)
@@ -341,6 +356,117 @@ private fun HorizontalDivider(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             .height(1.dp)
             .background(dafColors.divider)
     )
+}
+
+// ============================================================================
+// BACKGROUND ANIMATION - Subtle sand dunes / stars
+// ============================================================================
+
+@Composable
+private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
+    val infiniteTransition = rememberInfiniteTransition(label = "background")
+
+    // Slow oscillation for sand dunes (light mode) or star twinkle (dark mode)
+    val phase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(20000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "phase"
+    )
+
+    // Secondary slower phase for depth
+    val phase2 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(30000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "phase2"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val width = size.width
+        val height = size.height
+
+        if (dafColors.isDark) {
+            // Dark mode: subtle twinkling stars
+            val starCount = 30
+            val random = Random(42) // Fixed seed for consistent star positions
+            repeat(starCount) {
+                val x = random.nextFloat() * width
+                val y = random.nextFloat() * height * 0.7f // Stars in upper 70%
+                val baseAlpha = 0.2f + random.nextFloat() * 0.3f
+                val twinkleSpeed = 0.5f + random.nextFloat() * 0.5f
+
+                // Use sin for gentle twinkle
+                val twinkle = (sin((phase * 10 + it) * twinkleSpeed) + 1f) / 2f
+                val alpha = baseAlpha * (0.5f + twinkle * 0.5f)
+
+                drawCircle(
+                    color = Color.White.copy(alpha = alpha),
+                    radius = 1f + random.nextFloat() * 1.5f,
+                    center = Offset(x, y)
+                )
+            }
+        } else {
+            // Light mode: subtle sand dunes at bottom
+            val duneHeight = height * 0.25f
+            val waveAmplitude = height * 0.03f
+
+            // Dune 1 (back, lighter)
+            val path1 = Path().apply {
+                moveTo(0f, height)
+                moveTo(0f, height - duneHeight * 0.6f)
+                for (x in 0..width.toInt() step 10) {
+                    val y = height - duneHeight * 0.6f +
+                            sin((x / width * 2 * Math.PI + phase * 0.5).toFloat()) * waveAmplitude
+                    lineTo(x.toFloat(), y)
+                }
+                lineTo(width, height)
+                close()
+            }
+            drawPath(
+                path = path1,
+                color = dafColors.sand.copy(alpha = 0.3f)
+            )
+
+            // Dune 2 (middle)
+            val path2 = Path().apply {
+                moveTo(0f, height)
+                for (x in 0..width.toInt() step 10) {
+                    val y = height - duneHeight * 0.4f +
+                            sin((x / width * 3 * Math.PI + phase2 * 0.7 + 1).toFloat()) * waveAmplitude * 0.8f
+                    lineTo(x.toFloat(), y)
+                }
+                lineTo(width, height)
+                close()
+            }
+            drawPath(
+                path = path2,
+                color = dafColors.stone.copy(alpha = 0.15f)
+            )
+
+            // Dune 3 (front, darkest)
+            val path3 = Path().apply {
+                moveTo(0f, height)
+                for (x in 0..width.toInt() step 10) {
+                    val y = height - duneHeight * 0.2f +
+                            sin((x / width * 4 * Math.PI + (phase + phase2) * 0.3).toFloat()) * waveAmplitude * 0.6f
+                    lineTo(x.toFloat(), y)
+                }
+                lineTo(width, height)
+                close()
+            }
+            drawPath(
+                path = path3,
+                color = dafColors.stoneMuted.copy(alpha = 0.12f)
+            )
+        }
+    }
 }
 
 // ============================================================================
