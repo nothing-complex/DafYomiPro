@@ -112,23 +112,15 @@ private fun SettingsIcon(
     dafColors: com.dafyomi.pro.ui.theme.DafColors,
     onClick: () -> Unit
 ) {
-    Box(
+    // Simpler approach - just a clickable text with explicit size
+    Text(
+        text = "☰",
+        fontSize = 26.sp,
+        color = dafColors.textSecondary,
         modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.CenterEnd
-    ) {
-        // Use sky color for better visibility in both light and dark modes
-        Text(
-            text = "☰",
-            fontSize = 24.sp,
-            color = dafColors.sky,
-            modifier = Modifier
-                .size(48.dp)
-                .clickable { onClick() }
-        )
-    }
+            .padding(16.dp)
+            .clickable { onClick() }
+    )
 }
 
 @Composable
@@ -346,34 +338,34 @@ private fun HorizontalDivider(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
 private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
     val infiniteTransition = rememberInfiniteTransition(label = "background")
 
-    // Slow oscillation for sand dunes (light mode)
+    // Slow oscillation for sand dunes (light mode) - 8 seconds
     val phase by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
+            animation = tween(8000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "phase"
     )
 
-    // Secondary slower phase for depth
+    // Secondary slower phase for depth - 12 seconds
     val phase2 by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(30000, easing = LinearEasing),
+            animation = tween(12000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "phase2"
     )
 
-    // Slow fade for stars (very slow, 10 second cycles)
+    // Slow fade for stars - 6 seconds
     val fadePhase by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(10000, easing = LinearEasing),
+            animation = tween(6000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "fadePhase"
@@ -390,12 +382,9 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             repeat(starCount) {
                 val x = random.nextFloat() * width
                 val y = random.nextFloat() * height * 0.7f
-                // Larger stars (1.5-3px) but fainter (max 0.15 alpha)
                 val baseAlpha = 0.03f + random.nextFloat() * 0.07f
-                // Slow individual twinkle
                 val twinkleOffset = it * 0.3f
                 val twinkle = (sin((fadePhase * 6.28f + twinkleOffset)) + 1f) / 2f
-                // Combine fade and twinkle for slow breathing effect
                 val alpha = baseAlpha * (0.3f + twinkle * 0.7f)
 
                 drawCircle(
@@ -405,9 +394,9 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
                 )
             }
         } else {
-            // Light mode: sand dunes at bottom third (visible but subtle)
-            val duneHeight = height * 0.33f  // Bottom third
-            val waveAmplitude = height * 0.03f
+            // Light mode: sand dunes at bottom third
+            val duneHeight = height * 0.33f
+            val waveAmplitude = height * 0.025f
 
             // Dune 1 (back layer)
             val path1 = Path().apply {
@@ -423,7 +412,7 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             }
             drawPath(
                 path = path1,
-                color = dafColors.sand.copy(alpha = 0.25f)  // Subtle sand tone
+                color = dafColors.sand.copy(alpha = 0.25f)
             )
 
             // Dune 2 (middle layer)
@@ -439,7 +428,7 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             }
             drawPath(
                 path = path2,
-                color = dafColors.stone.copy(alpha = 0.2f)  // Stone tone
+                color = dafColors.stone.copy(alpha = 0.2f)
             )
 
             // Dune 3 (front layer)
@@ -455,7 +444,7 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             }
             drawPath(
                 path = path3,
-                color = dafColors.stoneMuted.copy(alpha = 0.18f)  // Darker stone
+                color = dafColors.stoneMuted.copy(alpha = 0.18f)
             )
         }
     }
@@ -672,29 +661,29 @@ private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafCo
                     )
                 }
 
-                // Share icon - simple arrow pointing up-right
-                Canvas(modifier = Modifier.size(24.dp)) {
-                    val strokeWidth = 2.dp.toPx()
+                // Share icon - larger arrow
+                Canvas(modifier = Modifier.size(32.dp)) {
+                    val strokeWidth = 2.5.dp.toPx()
                     // Arrow stem
                     drawLine(
-                        color = dafColors.sky,
-                        start = Offset(6f, 18f),
-                        end = Offset(18f, 6f),
+                        color = dafColors.textSecondary,
+                        start = Offset(8f, 22f),
+                        end = Offset(22f, 8f),
                         strokeWidth = strokeWidth,
                         cap = StrokeCap.Round
                     )
-                    // Arrow head
+                    // Arrow head pointing up-right
                     drawLine(
-                        color = dafColors.sky,
-                        start = Offset(18f, 6f),
-                        end = Offset(18f, 14f),
+                        color = dafColors.textSecondary,
+                        start = Offset(22f, 8f),
+                        end = Offset(22f, 16f),
                         strokeWidth = strokeWidth,
                         cap = StrokeCap.Round
                     )
                     drawLine(
-                        color = dafColors.sky,
-                        start = Offset(18f, 6f),
-                        end = Offset(10f, 6f),
+                        color = dafColors.textSecondary,
+                        start = Offset(22f, 8f),
+                        end = Offset(14f, 8f),
                         strokeWidth = strokeWidth,
                         cap = StrokeCap.Round
                     )
