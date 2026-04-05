@@ -114,37 +114,37 @@ private fun SettingsIcon(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 24.dp, end = 24.dp),
+            .padding(top = 16.dp, end = 16.dp)
+            .clickable { onClick() },
         contentAlignment = Alignment.TopEnd
     ) {
         Canvas(
-            modifier = Modifier
-                .size(28.dp)
-                .clickable { onClick() }
+            modifier = Modifier.size(44.dp)  // Larger tappable area
         ) {
-            val lineHeight = 3.dp.toPx()
-            val spacing = 8.dp.toPx()
+            val lineHeight = 2.5.dp.toPx()
+            val spacing = 7.dp.toPx()
             val strokeWidth = 2.dp.toPx()
+            val offsetX = 8.dp.toPx()
 
             // Three horizontal lines (hamburger style)
             drawLine(
                 color = dafColors.textSecondary,
-                start = Offset(0f, spacing),
-                end = Offset(size.width, spacing),
+                start = Offset(offsetX, spacing),
+                end = Offset(size.width - offsetX, spacing),
                 strokeWidth = strokeWidth,
                 cap = StrokeCap.Round
             )
             drawLine(
                 color = dafColors.textSecondary,
-                start = Offset(0f, spacing * 2),
-                end = Offset(size.width, spacing * 2),
+                start = Offset(offsetX, spacing * 2),
+                end = Offset(size.width - offsetX, spacing * 2),
                 strokeWidth = strokeWidth,
                 cap = StrokeCap.Round
             )
             drawLine(
                 color = dafColors.textSecondary,
-                start = Offset(0f, spacing * 3),
-                end = Offset(size.width, spacing * 3),
+                start = Offset(offsetX, spacing * 3),
+                end = Offset(size.width - offsetX, spacing * 3),
                 strokeWidth = strokeWidth,
                 cap = StrokeCap.Round
             )
@@ -390,11 +390,7 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
     )
 
     // Use pointerInput to ensure touches pass through to elements below
-    Canvas(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) { }  // Empty - just passes through touches
-    ) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height
 
@@ -419,16 +415,16 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
                 )
             }
         } else {
-            // Light mode: subtle sand dunes at bottom (30% larger, more subtle colors)
-            val duneHeight = height * 0.325f  // 30% larger (was 0.25f)
-            val waveAmplitude = height * 0.025f
+            // Light mode: sand dunes at bottom third (visible but subtle)
+            val duneHeight = height * 0.33f  // Bottom third
+            val waveAmplitude = height * 0.03f
 
-            // Dune 1 (back, very subtle - close to gradient)
+            // Dune 1 (back layer)
             val path1 = Path().apply {
                 moveTo(0f, height)
-                moveTo(0f, height - duneHeight * 0.5f)
+                moveTo(0f, height - duneHeight * 0.6f)
                 for (x in 0..width.toInt() step 10) {
-                    val y = height - duneHeight * 0.5f +
+                    val y = height - duneHeight * 0.6f +
                             sin((x / width * 2 * Math.PI + phase * 0.5).toFloat()) * waveAmplitude
                     lineTo(x.toFloat(), y)
                 }
@@ -437,14 +433,14 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             }
             drawPath(
                 path = path1,
-                color = dafColors.sky.copy(alpha = 0.08f)  // More subtle - sky tone
+                color = dafColors.sand.copy(alpha = 0.25f)  // Subtle sand tone
             )
 
-            // Dune 2 (middle)
+            // Dune 2 (middle layer)
             val path2 = Path().apply {
                 moveTo(0f, height)
                 for (x in 0..width.toInt() step 10) {
-                    val y = height - duneHeight * 0.35f +
+                    val y = height - duneHeight * 0.4f +
                             sin((x / width * 3 * Math.PI + phase2 * 0.7 + 1).toFloat()) * waveAmplitude * 0.8f
                     lineTo(x.toFloat(), y)
                 }
@@ -453,15 +449,15 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             }
             drawPath(
                 path = path2,
-                color = dafColors.sand.copy(alpha = 0.06f)  // Very subtle
+                color = dafColors.stone.copy(alpha = 0.2f)  // Stone tone
             )
 
-            // Dune 3 (front, most subtle - close to background gradient)
+            // Dune 3 (front layer)
             val path3 = Path().apply {
                 moveTo(0f, height)
                 for (x in 0..width.toInt() step 10) {
-                    val y = height - duneHeight * 0.15f +
-                            sin((x / width * 4 * Math.PI + (phase + phase2) * 0.3).toFloat()) * waveAmplitude * 0.5f
+                    val y = height - duneHeight * 0.2f +
+                            sin((x / width * 4 * Math.PI + (phase + phase2) * 0.3).toFloat()) * waveAmplitude * 0.6f
                     lineTo(x.toFloat(), y)
                 }
                 lineTo(width, height)
@@ -469,7 +465,7 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             }
             drawPath(
                 path = path3,
-                color = dafColors.background.copy(alpha = 0.05f)  // Blend with gradient
+                color = dafColors.stoneMuted.copy(alpha = 0.18f)  // Darker stone
             )
         }
     }
