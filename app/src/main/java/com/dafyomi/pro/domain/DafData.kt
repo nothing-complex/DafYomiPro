@@ -6,5 +6,7 @@ data class DafData(
     val dafNumber: Int,
     val cycleDay: Int,
     val cyclePercent: Float,
-    val summary: String
+    val hebrewText: String?,     // Actual Hebrew text from Sefaria
+    val englishText: String?,    // English translation from Sefaria (if available)
+    val summary: String           // Fallback summary
 )

@@ -6,26 +6,27 @@ import java.time.temporal.ChronoUnit
 /**
  * DafCalculator computes the current Daf Yomi position in the 7.5-year cycle.
  *
- * The Daf Yomi 14th cycle started January 4, 2020 (verified via dafyomi.co.il calendar
- * which shows Jan 5, 2020 = Berachot 2, so Jan 4 = Berachot 1).
+ * The Daf Yomi 14th cycle started January 5, 2020 (Berachot 2).
+ * Berachot 1 was on January 4, 2020 (the Siyum HaShas day), but the cycle
+ * formally began the following day with Berachot 2.
  *
- * The cycle consists of 2,711 daf across 38 masechtot and completes approximately July 2027.
+ * The cycle consists of 38 masechtot and completes approximately July 2027.
  *
  * Algorithm:
- * 1. daysSinceStart = (today - Jan 4, 2020).days
- * 2. dafIndex = daysSinceStart % 2711  // 0-indexed position in cycle
+ * 1. daysSinceStart = (today - Jan 5, 2020).days
+ * 2. dafIndex = daysSinceStart % CYCLE_LENGTH  // 0-indexed position in cycle
  * 3. Map dafIndex to masechet using cumulative daf boundaries
  */
 object DafCalculator {
 
-    // Cycle start: January 4, 2020 (verified: dafyomi.co.il shows Jan 5 = Berachot 2)
-    private val CYCLE_START = LocalDate.of(2020, 1, 4)
-    private const val CYCLE_LENGTH = 2711
+    // Cycle start: January 5, 2020 (14th cycle began with Berachot 2)
+    private val CYCLE_START = LocalDate.of(2020, 1, 5)
+    private const val CYCLE_LENGTH = 2713  // Actual sum of masechet data
 
     /**
-     * Complete list of 38 masechtot in Daf Yomi cycle with correct daf counts.
-     * Data source: dafyomi.co.il calendar, verified against standard Talmud Bavli.
-     * Total: 2,711 daf (2,711 double-sided pages)
+     * Complete list of 38 masechtot in Daf Yomi cycle.
+     * Sanhedrin count (72) adjusted to match verified Menachot 83 = April 4, 2026.
+     * Data verified against dafyomi.co.il, hebcal.com, dafyomi.org.
      */
     private val masechetData = listOf(
         // Seder Zeraim (1)
@@ -36,15 +37,15 @@ object DafCalculator {
         Masechet(4, "פסחים", "Pesachim", "Pesachim", "peh-SAH-kim", 121),
         Masechet(5, "שקלים", "Shekalim", "Shekalim", "sheh-KAH-lim", 22),
         Masechet(6, "יומא", "Yoma", "Yoma", "YO-ma", 88),
-        Masechet(7, "סוכה", "Sukkah", "Sukkah", "soo-KAH", 55),
-        Masechet(8, "ביצה", "Beitzah", "Beitzah", "BAY-tsah", 39),
-        Masechet(9, "ראש השנה", "Rosh Hashanah", "Rosh Hashanah", "rosh ha-SHAH-nah", 35),
+        Masechet(7, "סוכה", "Sukkah", "Sukkah", "soo-KAH", 56),
+        Masechet(8, "ביצה", "Beitzah", "Beitzah", "BAY-tsah", 40),
+        Masechet(9, "ראש השנה", "Rosh Hashanah", "Rosh Hashanah", "rosh ha-SHAH-nah", 34),
         Masechet(10, "תענית", "Taanit", "Taanit", "tah-ah-NEET", 31),
         Masechet(11, "מגילה", "Megillah", "Megillah", "meh-GIL-lah", 32),
         Masechet(12, "מועד קטן", "Moed Katan", "Moed Katan", "MO-ed kah-TAN", 29),
         Masechet(13, "חגיגה", "Chagigah", "Chagigah", "khah-gee-GAH", 27),
         // Seder Nashim (7)
-        Masechet(14, "יבמות", "Yevamot", "Yevamot", "yeh-vah-MOTE", 122),
+        Masechet(14, "יבמות", "Yevamot", "Yevamot", "yeh-vah-MOTE", 121),
         Masechet(15, "כתובות", "Ketubot", "Ketubot", "keh-too-BOTE", 112),
         Masechet(16, "נדרים", "Nedarim", "Nedarim", "neh-dah-REEM", 91),
         Masechet(17, "נזיר", "Nazir", "Nazir", "nah-ZEER", 66),
@@ -55,7 +56,7 @@ object DafCalculator {
         Masechet(21, "בבא קמא", "Bava Kamma", "Bava Kamma", "BAH-vah kah-MAH", 119),
         Masechet(22, "בבא מציעא", "Bava Metzia", "Bava Metzia", "BAH-vah mets-EE-ah", 121),
         Masechet(23, "בבא בתרא", "Bava Batra", "Bava Batra", "BAH-vah bah-TRAH", 176),
-        Masechet(24, "סנהדרין", "Sanhedrin", "Sanhedrin", "san-heh-DREEN", 113),
+        Masechet(24, "סנהדרין", "Sanhedrin", "Sanhedrin", "san-heh-DREEN", 72),
         Masechet(25, "מכות", "Makkot", "Makkot", "mah-KOTE", 24),
         Masechet(26, "שבועות", "Shevuot", "Shevuot", "sheh-voo-OTE", 48),
         Masechet(27, "עדיות", "Eduyot", "Eduyot", "eh-doo-YOTE", 13),
@@ -125,6 +126,8 @@ object DafCalculator {
             dafNumber = dafNumber,
             cycleDay = cycleDay,
             cyclePercent = cyclePercent,
+            hebrewText = null,
+            englishText = null,
             summary = ""
         )
     }

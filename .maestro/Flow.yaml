@@ -1,0 +1,6 @@
+appId: com.dafyomi.pro
+---
+# Simple launch test
+- launchApp:
+    appId: com.dafyomi.pro
+- waitForAnimationToEnd
