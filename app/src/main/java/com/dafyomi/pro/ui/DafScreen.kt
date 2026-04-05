@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -388,41 +389,46 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
         label = "phase2"
     )
 
-    Canvas(modifier = Modifier.fillMaxSize()) {
+    // Use pointerInput to ensure touches pass through to elements below
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) { }  // Empty - just passes through touches
+    ) {
         val width = size.width
         val height = size.height
 
         if (dafColors.isDark) {
-            // Dark mode: subtle twinkling stars
-            val starCount = 30
+            // Dark mode: subtle twinkling stars (very faint)
+            val starCount = 25
             val random = Random(42) // Fixed seed for consistent star positions
             repeat(starCount) {
                 val x = random.nextFloat() * width
-                val y = random.nextFloat() * height * 0.7f // Stars in upper 70%
-                val baseAlpha = 0.2f + random.nextFloat() * 0.3f
-                val twinkleSpeed = 0.5f + random.nextFloat() * 0.5f
+                val y = random.nextFloat() * height * 0.6f // Stars in upper 60%
+                val baseAlpha = 0.15f + random.nextFloat() * 0.2f
+                val twinkleSpeed = 0.3f + random.nextFloat() * 0.3f
 
                 // Use sin for gentle twinkle
-                val twinkle = (sin((phase * 10 + it) * twinkleSpeed) + 1f) / 2f
-                val alpha = baseAlpha * (0.5f + twinkle * 0.5f)
+                val twinkle = (sin((phase * 8 + it) * twinkleSpeed) + 1f) / 2f
+                val alpha = baseAlpha * (0.4f + twinkle * 0.6f)
 
                 drawCircle(
                     color = Color.White.copy(alpha = alpha),
-                    radius = 1f + random.nextFloat() * 1.5f,
+                    radius = 0.8f + random.nextFloat() * 1.2f,
                     center = Offset(x, y)
                 )
             }
         } else {
-            // Light mode: subtle sand dunes at bottom
-            val duneHeight = height * 0.25f
-            val waveAmplitude = height * 0.03f
+            // Light mode: subtle sand dunes at bottom (30% larger, more subtle colors)
+            val duneHeight = height * 0.325f  // 30% larger (was 0.25f)
+            val waveAmplitude = height * 0.025f
 
-            // Dune 1 (back, lighter)
+            // Dune 1 (back, very subtle - close to gradient)
             val path1 = Path().apply {
                 moveTo(0f, height)
-                moveTo(0f, height - duneHeight * 0.6f)
+                moveTo(0f, height - duneHeight * 0.5f)
                 for (x in 0..width.toInt() step 10) {
-                    val y = height - duneHeight * 0.6f +
+                    val y = height - duneHeight * 0.5f +
                             sin((x / width * 2 * Math.PI + phase * 0.5).toFloat()) * waveAmplitude
                     lineTo(x.toFloat(), y)
                 }
@@ -431,14 +437,14 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             }
             drawPath(
                 path = path1,
-                color = dafColors.sand.copy(alpha = 0.3f)
+                color = dafColors.sky.copy(alpha = 0.08f)  // More subtle - sky tone
             )
 
             // Dune 2 (middle)
             val path2 = Path().apply {
                 moveTo(0f, height)
                 for (x in 0..width.toInt() step 10) {
-                    val y = height - duneHeight * 0.4f +
+                    val y = height - duneHeight * 0.35f +
                             sin((x / width * 3 * Math.PI + phase2 * 0.7 + 1).toFloat()) * waveAmplitude * 0.8f
                     lineTo(x.toFloat(), y)
                 }
@@ -447,15 +453,15 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             }
             drawPath(
                 path = path2,
-                color = dafColors.stone.copy(alpha = 0.15f)
+                color = dafColors.sand.copy(alpha = 0.06f)  // Very subtle
             )
 
-            // Dune 3 (front, darkest)
+            // Dune 3 (front, most subtle - close to background gradient)
             val path3 = Path().apply {
                 moveTo(0f, height)
                 for (x in 0..width.toInt() step 10) {
-                    val y = height - duneHeight * 0.2f +
-                            sin((x / width * 4 * Math.PI + (phase + phase2) * 0.3).toFloat()) * waveAmplitude * 0.6f
+                    val y = height - duneHeight * 0.15f +
+                            sin((x / width * 4 * Math.PI + (phase + phase2) * 0.3).toFloat()) * waveAmplitude * 0.5f
                     lineTo(x.toFloat(), y)
                 }
                 lineTo(width, height)
@@ -463,7 +469,7 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
             }
             drawPath(
                 path = path3,
-                color = dafColors.stoneMuted.copy(alpha = 0.12f)
+                color = dafColors.background.copy(alpha = 0.05f)  // Blend with gradient
             )
         }
     }
