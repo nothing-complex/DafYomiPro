@@ -30,9 +30,9 @@ val OffWhite = Color(0xFFFAF8F5)         // Card/surface alternative
 val Charcoal = Color(0xFF2D2926)          // Primary text
 
 // Dark Mode Colors
-val SandDark = Color(0xFFD4C4A8)          // Deep sand
-val StoneDark = Color(0xFF4A4643)        // Slate - primary text
-val StoneMutedDark = Color(0xFF6B6560)   // Muted stone - secondary
+val SandDark = Color(0xFF3D3830)          // Darker sand
+val StoneDark = Color(0xFF2A2727)        // Darker slate
+val StoneMutedDark = Color(0xFF4A4540)   // Muted stone
 
 val SkyDark = Color(0xFF7A9BAB)           // Dusty blue accent
 val SkyNight = Color(0xFF3D5A6B)          // Night blue accent

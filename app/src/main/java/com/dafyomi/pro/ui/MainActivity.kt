@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val app = application as DafYomiApp
-        var themeMode by mutableStateOf(ThemeMode.OFF)
+        var themeMode by mutableStateOf(ThemeMode.AUTO)
 
         setContent {
             DafYomiProTheme(themeMode = themeMode) {

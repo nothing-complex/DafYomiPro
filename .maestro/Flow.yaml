@@ -1,6 +1,26 @@
 appId: com.dafyomi.pro
 ---
-# Simple launch test
-- launchApp:
-    appId: com.dafyomi.pro
+# Full theme toggle test loop
+- launchApp
 - waitForAnimationToEnd
+- takeScreenshot: 01_light_initial.png
+# Open hamburger menu at top right
+- tapOn:
+    point: "960,100"
+- waitForAnimationToEnd
+- takeScreenshot: 02_light_dialog.png
+# Tap Dark mode (On) - second option in dialog
+- tapOn:
+    point: "350,1400"
+- waitForAnimationToEnd
+- takeScreenshot: 03_dark_mode.png
+# Open hamburger menu again
+- tapOn:
+    point: "960,100"
+- waitForAnimationToEnd
+- takeScreenshot: 04_dark_dialog.png
+# Tap Light mode (Off) - first option in dialog
+- tapOn:
+    point: "350,1330"
+- waitForAnimationToEnd
+- takeScreenshot: 05_light_restored.png

@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.input.pointer.pointerInput
@@ -55,7 +58,24 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 // ============================================================================
-// MINIMALIST FLAT DESIGN - SAND, STONE & SKY
+// DAF YOMI PRO - MAIN SCREEN
+// ============================================================================
+//
+// Architecture: MVVM with Jetpack Compose
+// - DafScreen: Composable UI (View layer)
+// - DafViewModel: State management (ViewModel layer)
+// - DafRepository: Data fetching (Data layer)
+// - DafCalculator: Business logic (Domain layer)
+//
+// Theme System:
+// - Uses CompositionLocal (LocalDafColors) for theme-aware colors
+// - Three modes: OFF (light), ON (dark), AUTO (time-based: 6am-6pm light)
+// - Sand/stone colors for light mode, charcoal/cream for dark mode
+//
+// Design Principles:
+// - Minimalist flat design with warm sand/sky palette
+// - Typography as hero element (Hebrew focus, large Daf numbers)
+// - Subtle animated background (sand dunes representing desert study)
 // ============================================================================
 
 @Composable
@@ -66,20 +86,15 @@ fun DafScreen(
     val state by viewModel.state.collectAsState()
     val dafColors = LocalDafColors.current
     var showSettings by remember { mutableStateOf(false) }
+    var fontSizeMultiplier by remember { mutableStateOf(1.0f) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(dafColors.gradientBrush)
     ) {
-        // Background animation (non-interactive - draws behind)
+        // Background animation (dunes for light, stars for dark)
         BackgroundAnimation(dafColors = dafColors)
-
-        // Settings icon - separate Box to ensure touch works
-        SettingsIcon(
-            dafColors = dafColors,
-            onClick = { showSettings = true }
-        )
 
         when {
             state.isLoading -> {
@@ -89,7 +104,7 @@ fun DafScreen(
                 ErrorState(state.error ?: "", dafColors)
             }
             state.daf != null -> {
-                DafContent(daf = state.daf!!, dafColors = dafColors)
+                DafContent(daf = state.daf!!, dafColors = dafColors, fontSizeMultiplier = fontSizeMultiplier)
             }
             else -> {
                 LoadingState(dafColors)
@@ -101,7 +116,20 @@ fun DafScreen(
             SettingsDialog(
                 dafColors = dafColors,
                 onDismiss = { showSettings = false },
-                onThemeModeChange = onThemeModeChange
+                onThemeModeChange = onThemeModeChange,
+                fontSizeMultiplier = fontSizeMultiplier,
+                onFontSizeChange = { fontSizeMultiplier = it }
+            )
+        }
+
+        // Settings icon - positioned at top right, rendered ON TOP of content
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            SettingsIcon(
+                dafColors = dafColors,
+                onClick = { showSettings = true }
             )
         }
     }
@@ -127,7 +155,9 @@ private fun SettingsIcon(
 private fun SettingsDialog(
     dafColors: com.dafyomi.pro.ui.theme.DafColors,
     onDismiss: () -> Unit,
-    onThemeModeChange: (ThemeMode) -> Unit
+    onThemeModeChange: (ThemeMode) -> Unit,
+    fontSizeMultiplier: Float = 1f,
+    onFontSizeChange: (Float) -> Unit = {}
 ) {
     var currentTheme by remember { mutableStateOf(ThemeMode.AUTO) }
 
@@ -194,6 +224,47 @@ private fun SettingsDialog(
                 }
             )
 
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "Text Size",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.W500,
+                color = dafColors.textSecondary,
+                letterSpacing = 0.5.sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FontSizeButton(
+                    label = "A",
+                    isSelected = fontSizeMultiplier == 1f,
+                    dafColors = dafColors,
+                    onClick = { onFontSizeChange(1f) },
+                    modifier = Modifier.weight(1f)
+                )
+                FontSizeButton(
+                    label = "A",
+                    isSelected = fontSizeMultiplier == 1.2f,
+                    dafColors = dafColors,
+                    onClick = { onFontSizeChange(1.2f) },
+                    modifier = Modifier.weight(1f),
+                    scale = 1.2f
+                )
+                FontSizeButton(
+                    label = "A",
+                    isSelected = fontSizeMultiplier == 1.4f,
+                    dafColors = dafColors,
+                    onClick = { onFontSizeChange(1.4f) },
+                    modifier = Modifier.weight(1f),
+                    scale = 1.4f
+                )
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
@@ -244,6 +315,32 @@ private fun ThemeOption(
 }
 
 @Composable
+private fun FontSizeButton(
+    label: String,
+    isSelected: Boolean,
+    dafColors: com.dafyomi.pro.ui.theme.DafColors,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    scale: Float = 1f
+) {
+    Box(
+        modifier = modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isSelected) dafColors.sky else dafColors.backgroundSecondary)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = (14 * scale).sp,
+            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+            color = if (isSelected) dafColors.background else dafColors.textPrimary
+        )
+    }
+}
+
+@Composable
 private fun LoadingState(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -277,19 +374,19 @@ private fun ErrorState(error: String, dafColors: com.dafyomi.pro.ui.theme.DafCol
 // ============================================================================
 
 @Composable
-private fun DafContent(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColors) {
+private fun DafContent(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColors, fontSizeMultiplier: Float = 1f) {
     var showEnglish by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)  // Reduced from 40dp per research
+            .padding(horizontal = 24.dp)
     ) {
-        Spacer(modifier = Modifier.height(24.dp))  // Reduced - status bar handled in MainActivity
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Section 1: Current Daf (large typography focus)
-        DafSection(daf = daf, dafColors = dafColors)
+        DafSection(daf = daf, dafColors = dafColors, fontSizeMultiplier = fontSizeMultiplier)
 
         Spacer(modifier = Modifier.height(32.dp))  // Reduced from 40dp
 
@@ -331,14 +428,26 @@ private fun HorizontalDivider(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
 }
 
 // ============================================================================
-// BACKGROUND ANIMATION - Subtle sand dunes / stars
+// BACKGROUND ANIMATION - Subtle sand dunes representing the desert
+// ============================================================================
+//
+// Creates an animated desert landscape using sine waves.
+// Three layers of dunes with different frequencies and phases create depth.
+// The animation is slow (8-12 second cycles) for a calm, meditative feel.
+//
+// Wave Formula: y = baseHeight + sin(x * frequency + phase) * amplitude
+// - Dune 1: slowest wave (2 * PI), most opaque
+// - Dune 2: medium wave (3 * PI), medium opacity
+// - Dune 3: fastest wave (4 * PI), most transparent
+//
+// Colors are theme-aware: light sand tones in light mode, muted dark in dark mode
 // ============================================================================
 
 @Composable
 private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
     val infiniteTransition = rememberInfiniteTransition(label = "background")
 
-    // Slow oscillation for sand dunes (light mode) - 8 seconds
+    // Primary animation phase - 8 second full cycle
     val phase by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -349,7 +458,8 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
         label = "phase"
     )
 
-    // Secondary slower phase for depth - 12 seconds
+    // Secondary phase offset for depth - 12 second cycle
+    // Using different prime-ish number (12s vs 8s) prevents pattern lock
     val phase2 by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -360,93 +470,58 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
         label = "phase2"
     )
 
-    // Slow fade for stars - 6 seconds
-    val fadePhase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(6000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "fadePhase"
-    )
-
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height
 
-        if (dafColors.isDark) {
-            // Dark mode: stars - larger, less bright, more numerous, slow fade
-            val starCount = 50
-            val random = Random(42)
-            repeat(starCount) {
-                val x = random.nextFloat() * width
-                val y = random.nextFloat() * height * 0.7f
-                val baseAlpha = 0.03f + random.nextFloat() * 0.07f
-                val twinkleOffset = it * 0.3f
-                val twinkle = (sin((fadePhase * 6.28f + twinkleOffset)) + 1f) / 2f
-                val alpha = baseAlpha * (0.3f + twinkle * 0.7f)
+        // duneHeight: dunes occupy bottom third of screen
+        val duneHeight = height * 0.33f
+        // waveAmplitude: subtle 2.5% of screen height for gentle motion
+        val waveAmplitude = height * 0.025f
 
-                drawCircle(
-                    color = Color.White.copy(alpha = alpha),
-                    radius = 1.5f + random.nextFloat() * 1.5f,
-                    center = Offset(x, y)
-                )
+        // === Dune 1 (back layer - most visible) ===
+        // Base height at 60% up the screen, slowest wave (2π)
+        val path1 = Path().apply {
+            moveTo(0f, height)
+            moveTo(0f, height - duneHeight * 0.6f)
+            for (x in 0..width.toInt() step 10) {
+                // sin creates smooth wave, phase shifts it over time
+                val y = height - duneHeight * 0.6f +
+                        sin((x / width * 2 * Math.PI + phase * 0.5).toFloat()) * waveAmplitude
+                lineTo(x.toFloat(), y)
             }
-        } else {
-            // Light mode: sand dunes at bottom third
-            val duneHeight = height * 0.33f
-            val waveAmplitude = height * 0.025f
-
-            // Dune 1 (back layer)
-            val path1 = Path().apply {
-                moveTo(0f, height)
-                moveTo(0f, height - duneHeight * 0.6f)
-                for (x in 0..width.toInt() step 10) {
-                    val y = height - duneHeight * 0.6f +
-                            sin((x / width * 2 * Math.PI + phase * 0.5).toFloat()) * waveAmplitude
-                    lineTo(x.toFloat(), y)
-                }
-                lineTo(width, height)
-                close()
-            }
-            drawPath(
-                path = path1,
-                color = dafColors.sand.copy(alpha = 0.25f)
-            )
-
-            // Dune 2 (middle layer)
-            val path2 = Path().apply {
-                moveTo(0f, height)
-                for (x in 0..width.toInt() step 10) {
-                    val y = height - duneHeight * 0.4f +
-                            sin((x / width * 3 * Math.PI + phase2 * 0.7 + 1).toFloat()) * waveAmplitude * 0.8f
-                    lineTo(x.toFloat(), y)
-                }
-                lineTo(width, height)
-                close()
-            }
-            drawPath(
-                path = path2,
-                color = dafColors.stone.copy(alpha = 0.2f)
-            )
-
-            // Dune 3 (front layer)
-            val path3 = Path().apply {
-                moveTo(0f, height)
-                for (x in 0..width.toInt() step 10) {
-                    val y = height - duneHeight * 0.2f +
-                            sin((x / width * 4 * Math.PI + (phase + phase2) * 0.3).toFloat()) * waveAmplitude * 0.6f
-                    lineTo(x.toFloat(), y)
-                }
-                lineTo(width, height)
-                close()
-            }
-            drawPath(
-                path = path3,
-                color = dafColors.stoneMuted.copy(alpha = 0.18f)
-            )
+            lineTo(width, height)
+            close()
         }
+        drawPath(path = path1, color = dafColors.sand.copy(alpha = 0.25f))
+
+        // === Dune 2 (middle layer) ===
+        // Base height at 40%, faster wave (3π), slightly smaller amplitude
+        val path2 = Path().apply {
+            moveTo(0f, height)
+            for (x in 0..width.toInt() step 10) {
+                val y = height - duneHeight * 0.4f +
+                        sin((x / width * 3 * Math.PI + phase2 * 0.7 + 1).toFloat()) * waveAmplitude * 0.8f
+                lineTo(x.toFloat(), y)
+            }
+            lineTo(width, height)
+            close()
+        }
+        drawPath(path = path2, color = dafColors.stone.copy(alpha = 0.2f))
+
+        // === Dune 3 (front layer - most transparent) ===
+        // Base height at 20%, fastest wave (4π), smallest amplitude
+        val path3 = Path().apply {
+            moveTo(0f, height)
+            for (x in 0..width.toInt() step 10) {
+                val y = height - duneHeight * 0.2f +
+                        sin((x / width * 4 * Math.PI + (phase + phase2) * 0.3).toFloat()) * waveAmplitude * 0.6f
+                lineTo(x.toFloat(), y)
+            }
+            lineTo(width, height)
+            close()
+        }
+        drawPath(path = path3, color = dafColors.stoneMuted.copy(alpha = 0.18f))
     }
 }
 
@@ -455,7 +530,7 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
 // ============================================================================
 
 @Composable
-private fun DafSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColors) {
+private fun DafSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColors, fontSizeMultiplier: Float = 1f) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
@@ -463,7 +538,7 @@ private fun DafSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColo
         // Hebrew name - Display typography (refined size per research)
         Text(
             text = daf.masechet.hebrew,
-            fontSize = 44.sp,  // Reduced from 48sp for elegance
+            fontSize = (44 * fontSizeMultiplier).sp,  // Reduced from 48sp for elegance
             fontWeight = FontWeight.Light,
             fontFamily = FontFamily.Serif,
             color = dafColors.textPrimary,
@@ -476,7 +551,7 @@ private fun DafSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColo
         // English transliteration
         Text(
             text = daf.masechet.transliteration,
-            fontSize = 13.sp,  // Slightly smaller
+            fontSize = (13 * fontSizeMultiplier).sp,  // Slightly smaller
             fontWeight = FontWeight.Normal,
             color = dafColors.textSecondary,
             textAlign = TextAlign.Center,
@@ -488,7 +563,7 @@ private fun DafSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColo
         // Daf number - PROMINENT (refined size)
         Text(
             text = "${daf.dafNumber}",
-            fontSize = 64.sp,  // Reduced from 72sp
+            fontSize = (64 * fontSizeMultiplier).sp,  // Reduced from 72sp
             fontWeight = FontWeight.Light,
             color = dafColors.sky,
             textAlign = TextAlign.Center,
@@ -497,7 +572,7 @@ private fun DafSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColo
 
         Text(
             text = "of ${daf.masechet.dafCount}",
-            fontSize = 13.sp,  // Slightly smaller
+            fontSize = (13 * fontSizeMultiplier).sp,  // Slightly smaller
             fontWeight = FontWeight.Normal,
             color = dafColors.textSecondary,
             textAlign = TextAlign.Center,
@@ -509,7 +584,7 @@ private fun DafSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColo
         // Cycle progress
         Text(
             text = "Day ${daf.cycleDay} of 2,711",
-            fontSize = 11.sp,  // Smaller, more subtle
+            fontSize = (11 * fontSizeMultiplier).sp,  // Smaller, more subtle
             fontWeight = FontWeight.Normal,
             color = dafColors.textSecondary,
             textAlign = TextAlign.Center,
@@ -583,13 +658,24 @@ private fun SummarySection(
 }
 
 // ============================================================================
-// SHARE SECTION - Flat button
+// SHARE SECTION - Share today's Daf with friends
+// ============================================================================
+//
+// Uses Android's native share sheet (ACTION_SEND intent).
+// The share text includes:
+// - Today's masechet and daf number
+// - Hebrew text or fallback summary
+// - Cycle progress (day X of 2,711)
+//
+// try-catch handles ActivityNotFoundException gracefully - if no app
+// can handle the share intent (rare), the user simply sees no response.
 // ============================================================================
 
 @Composable
 private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafColors) {
     val context = LocalContext.current
 
+    // Build share text with daf info and Hebrew/English text
     val shareText = buildString {
         append("Today's Daf Yomi: ")
         append(daf.masechet.transliteration)
@@ -605,10 +691,8 @@ private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafCo
         append("Shared via Daf Yomi Pro")
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        // Label
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Section label with letter-spacing for visual hierarchy
         Text(
             text = "SHARE TODAY'S DAF",
             fontSize = 11.sp,
@@ -618,7 +702,7 @@ private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafCo
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Flat share button - subtle border, minimalist style
+        // Share button - minimal border style
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -629,14 +713,17 @@ private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafCo
                 )
                 .clickable {
                     try {
+                        // Create share intent with plain text
                         val intent = android.content.Intent().apply {
                             action = android.content.Intent.ACTION_SEND
                             type = "text/plain"
                             putExtra(android.content.Intent.EXTRA_TEXT, shareText)
                         }
+                        // Show system share sheet (includes all messaging apps)
                         context.startActivity(android.content.Intent.createChooser(intent, "Share via"))
                     } catch (e: Exception) {
-                        // Silently fail
+                        // Silently handle if no app can receive the share
+                        // (e.g., some stripped Android builds)
                     }
                 }
                 .padding(vertical = 16.dp, horizontal = 20.dp)
@@ -661,10 +748,11 @@ private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafCo
                     )
                 }
 
-                // Share icon - larger arrow
+                // Custom share icon (up-right arrow) drawn with Canvas
+                // Replaces deprecated android.R.drawable.ic_menu_share
                 Canvas(modifier = Modifier.size(32.dp)) {
                     val strokeWidth = 2.5.dp.toPx()
-                    // Arrow stem
+                    // Arrow stem (diagonal line)
                     drawLine(
                         color = dafColors.textSecondary,
                         start = Offset(8f, 22f),
@@ -672,7 +760,7 @@ private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafCo
                         strokeWidth = strokeWidth,
                         cap = StrokeCap.Round
                     )
-                    // Arrow head pointing up-right
+                    // Arrow head (two lines forming corner)
                     drawLine(
                         color = dafColors.textSecondary,
                         start = Offset(22f, 8f),

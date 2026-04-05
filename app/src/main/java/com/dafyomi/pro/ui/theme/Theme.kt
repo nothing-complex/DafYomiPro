@@ -6,7 +6,12 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -14,6 +19,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import java.time.LocalTime
+import androidx.compose.runtime.withFrameMillis
 
 // ============================================================================
 // COMPOSITION LOCALS - For theme-aware values
@@ -115,12 +121,22 @@ fun DafYomiProTheme(
     themeMode: ThemeMode = ThemeMode.AUTO,
     content: @Composable () -> Unit
 ) {
+    // Track current hour for auto theme - updates every minute
+    var currentHour by remember { mutableIntStateOf(LocalTime.now().hour) }
+
+    LaunchedEffect(Unit) {
+        // Update every minute
+        while (true) {
+            kotlinx.coroutines.delay(60_000)
+            currentHour = LocalTime.now().hour
+        }
+    }
+
     val isDark = when (themeMode) {
         ThemeMode.OFF -> false
         ThemeMode.ON -> true
         ThemeMode.AUTO -> {
-            val hour = LocalTime.now().hour
-            hour < 6 || hour >= 18
+            currentHour < 6 || currentHour >= 18
         }
     }
 
