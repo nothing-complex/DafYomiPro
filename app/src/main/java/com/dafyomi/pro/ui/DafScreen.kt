@@ -119,13 +119,13 @@ private fun SettingsIcon(
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.CenterEnd
     ) {
-        // Use text symbol for hamburger - more reliable touch
+        // Use sky color for better visibility in both light and dark modes
         Text(
             text = "☰",
             fontSize = 24.sp,
-            color = dafColors.textSecondary,
+            color = dafColors.sky,
             modifier = Modifier
-                .size(44.dp)
+                .size(48.dp)
                 .clickable { onClick() }
         )
     }
@@ -346,7 +346,7 @@ private fun HorizontalDivider(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
 private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
     val infiniteTransition = rememberInfiniteTransition(label = "background")
 
-    // Slow oscillation for sand dunes (light mode) or star twinkle (dark mode)
+    // Slow oscillation for sand dunes (light mode)
     val phase by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -368,28 +368,39 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
         label = "phase2"
     )
 
-    // Use pointerInput to ensure touches pass through to elements below
+    // Slow fade for stars (very slow, 10 second cycles)
+    val fadePhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(10000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fadePhase"
+    )
+
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height
 
         if (dafColors.isDark) {
-            // Dark mode: subtle twinkling stars (very faint)
-            val starCount = 25
-            val random = Random(42) // Fixed seed for consistent star positions
+            // Dark mode: stars - larger, less bright, more numerous, slow fade
+            val starCount = 50
+            val random = Random(42)
             repeat(starCount) {
                 val x = random.nextFloat() * width
-                val y = random.nextFloat() * height * 0.6f // Stars in upper 60%
-                val baseAlpha = 0.15f + random.nextFloat() * 0.2f
-                val twinkleSpeed = 0.3f + random.nextFloat() * 0.3f
-
-                // Use sin for gentle twinkle
-                val twinkle = (sin((phase * 8 + it) * twinkleSpeed) + 1f) / 2f
-                val alpha = baseAlpha * (0.4f + twinkle * 0.6f)
+                val y = random.nextFloat() * height * 0.7f
+                // Larger stars (1.5-3px) but fainter (max 0.15 alpha)
+                val baseAlpha = 0.03f + random.nextFloat() * 0.07f
+                // Slow individual twinkle
+                val twinkleOffset = it * 0.3f
+                val twinkle = (sin((fadePhase * 6.28f + twinkleOffset)) + 1f) / 2f
+                // Combine fade and twinkle for slow breathing effect
+                val alpha = baseAlpha * (0.3f + twinkle * 0.7f)
 
                 drawCircle(
                     color = Color.White.copy(alpha = alpha),
-                    radius = 0.8f + random.nextFloat() * 1.2f,
+                    radius = 1.5f + random.nextFloat() * 1.5f,
                     center = Offset(x, y)
                 )
             }
@@ -661,16 +672,32 @@ private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafCo
                     )
                 }
 
-                // Share icon (arrow)
-                Canvas(modifier = Modifier.size(20.dp, 20.dp)) {
-                    val path = androidx.compose.ui.graphics.Path().apply {
-                        moveTo(4f, 10f)
-                        lineTo(16f, 10f)
-                        lineTo(11f, 5f)
-                        moveTo(16f, 10f)
-                        lineTo(11f, 15f)
-                    }
-                    drawPath(path, dafColors.skyDeep, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
+                // Share icon - simple arrow pointing up-right
+                Canvas(modifier = Modifier.size(24.dp)) {
+                    val strokeWidth = 2.dp.toPx()
+                    // Arrow stem
+                    drawLine(
+                        color = dafColors.sky,
+                        start = Offset(6f, 18f),
+                        end = Offset(18f, 6f),
+                        strokeWidth = strokeWidth,
+                        cap = StrokeCap.Round
+                    )
+                    // Arrow head
+                    drawLine(
+                        color = dafColors.sky,
+                        start = Offset(18f, 6f),
+                        end = Offset(18f, 14f),
+                        strokeWidth = strokeWidth,
+                        cap = StrokeCap.Round
+                    )
+                    drawLine(
+                        color = dafColors.sky,
+                        start = Offset(18f, 6f),
+                        end = Offset(10f, 6f),
+                        strokeWidth = strokeWidth,
+                        cap = StrokeCap.Round
+                    )
                 }
             }
         }
