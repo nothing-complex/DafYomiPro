@@ -9,10 +9,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dafyomi.pro.DafYomiApp
 import com.dafyomi.pro.ui.theme.DafYomiProTheme
@@ -24,9 +23,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val app = application as DafYomiApp
-        var themeMode by mutableStateOf(ThemeMode.AUTO)
 
         setContent {
+            val viewModel: DafViewModel = viewModel(
+                factory = DafViewModel.factory(app)
+            )
+            val themeMode by viewModel.themeMode.collectAsState()
+
             DafYomiProTheme(themeMode = themeMode) {
                 Box(
                     modifier = Modifier
@@ -34,12 +37,8 @@ class MainActivity : ComponentActivity() {
                         .windowInsetsPadding(WindowInsets.statusBars)
                 ) {
                     DafScreen(
-                        viewModel = viewModel(
-                            factory = DafViewModel.factory(app)
-                        ),
-                        onThemeModeChange = { newMode ->
-                            themeMode = newMode
-                        }
+                        viewModel = viewModel,
+                        onThemeModeChange = { }
                     )
                 }
             }
