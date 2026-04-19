@@ -2,6 +2,19 @@ package com.dafyomi.pro.domain
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -16,6 +29,7 @@ class SefariaApiService {
 
     companion object {
         private const val BASE_URL = "https://www.sefaria.org/api/texts"
+        private val json = Json { ignoreUnknownKeys = true; isLenient = true }
     }
 
     /**
@@ -54,8 +68,9 @@ class SefariaApiService {
      */
     private fun parseV2Response(jsonResponse: String): DafTextResult? {
         return try {
-            val heText = extractTextFromField(jsonResponse, "\"he\":")
-            val enText = extractTextFromField(jsonResponse, "\"text\":")
+            val parsed = json.parseToJsonElement(jsonResponse)
+            val heText = extractTextFromField(parsed, "he")
+            val enText = extractTextFromField(parsed, "text")
             if (heText != null || enText != null) {
                 DafTextResult(hebrew = heText, english = enText)
             } else {
@@ -68,88 +83,48 @@ class SefariaApiService {
     }
 
     /**
-     * Extracts text from a field that contains nested arrays.
+     * Extracts text from a field, handling both nested arrays and flat arrays.
      */
-    private fun extractTextFromField(jsonResponse: String, fieldMarker: String): String? {
-        val fieldIndex = jsonResponse.indexOf(fieldMarker)
-        if (fieldIndex == -1) return null
-
-        // Find the opening bracket after the colon
-        val bracketStart = jsonResponse.indexOf("[", fieldIndex)
-        if (bracketStart == -1) return null
-
-        // Find matching closing bracket
-        var depth = 1
-        var endIndex = bracketStart + 1
-        while (endIndex < jsonResponse.length && depth > 0) {
-            when (jsonResponse[endIndex]) {
-                '[' -> depth++
-                ']' -> depth--
-            }
-            endIndex++
-        }
-
-        if (depth != 0) return null
-
-        val arrayContent = jsonResponse.substring(bracketStart, endIndex)
-        return parseNestedArray(arrayContent)
+    private fun extractTextFromField(root: JsonElement, fieldName: String): String? {
+        val field = (root as? JsonObject)?.get(fieldName) ?: return null
+        return extractTextFromElement(field)
     }
 
     /**
-     * Parses nested array of strings (like [["a","b"], ["c","d"]])
-     * into a single readable string.
+     * Extracts text from a JsonElement, handling nested arrays and strings.
      */
-    private fun parseNestedArray(content: String): String? {
-        val allLines = mutableListOf<String>()
-        var i = 0
-
-        while (i < content.length) {
-            // Skip whitespace and brackets
-            while (i < content.length && (content[i] == ' ' || content[i] == '\n' || content[i] == '[' || content[i] == ']' || content[i] == ',')) {
-                i++
-            }
-            if (i >= content.length) break
-
-            if (content[i] == '"') {
-                i++ // skip opening quote
-                val line = StringBuilder()
-
-                while (i < content.length) {
-                    val c = content[i]
-                    when {
-                        c == '\\' && i + 1 < content.length -> {
-                            val next = content[i + 1]
-                            when (next) {
-                                'n' -> { line.append('\n'); i += 2 }
-                                '"' -> { line.append('"'); i += 2 }
-                                '\\' -> { line.append('\\'); i += 2 }
-                                else -> { line.append(c); i++ }
-                            }
-                        }
-                        c == '"' -> break
-                        else -> { line.append(c); i++ }
+    private fun extractTextFromElement(element: JsonElement): String? {
+        return when (element) {
+            is JsonPrimitive -> element.content
+            is JsonArray -> {
+                val allLines = mutableListOf<String>()
+                for (item in element) {
+                    val extracted = extractTextFromElement(item)
+                    if (extracted != null) {
+                        allLines.add(extracted)
                     }
                 }
-
-                if (line.isNotEmpty()) {
-                    val trimmed = line.toString().trim()
-                    // Remove HTML tags like <big><strong> and </strong></big>
-                    val clean = trimmed.replace(Regex("<[^>]*>"), "")
-                    allLines.add(clean)
-                }
-                i++ // skip closing quote
-            } else {
-                i++
+                if (allLines.isNotEmpty()) {
+                    allLines.joinToString(" ").replace("\n", " ").trim()
+                } else null
             }
+            is JsonObject -> {
+                // For objects, try to get text content
+                val textField = element["text"]
+                if (textField != null) {
+                    extractTextFromElement(textField)
+                } else null
+            }
+            else -> null
         }
-
-        return if (allLines.isNotEmpty()) {
-            allLines.joinToString(" ").replace("\n", " ").trim()
-        } else null
     }
 }
 
+/**
+ * Result containing Hebrew and English text for a daf.
+ */
+@Serializable
 data class DafTextResult(
-    val hebrew: String?,   // Hebrew text
-    val english: String?   // English translation
+    val hebrew: String? = null,
+    val english: String? = null
 )

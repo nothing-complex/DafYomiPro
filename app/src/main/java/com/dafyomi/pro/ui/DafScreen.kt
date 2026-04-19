@@ -18,19 +18,27 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,9 +49,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dafyomi.pro.domain.DafData
@@ -76,27 +88,25 @@ fun DafScreen(
         // Background animation (dunes for light, stars for dark)
         BackgroundAnimation(dafColors = dafColors)
 
-        when {
-            state.isLoading && state.daf == null -> {
+        when (val currentState = state) {
+            is com.dafyomi.pro.ui.DafState.Loading -> {
                 LoadingState(dafColors, "Loading today's daf...")
             }
-            state.error != null && state.daf == null -> {
-                ErrorState(state.error ?: "", dafColors)
+            is com.dafyomi.pro.ui.DafState.Error -> {
+                ErrorState(currentState.message, dafColors)
             }
-            state.daf != null -> {
+            is com.dafyomi.pro.ui.DafState.Success -> {
                 DafContent(
-                    daf = state.daf!!,
+                    daf = currentState.daf,
                     dafColors = dafColors,
                     fontSizeMultiplier = fontSizeMultiplier
                 )
             }
-            else -> {
-                LoadingState(dafColors, "Loading today's daf...")
-            }
         }
 
         // Offline indicator - show when we have daf but no hebrewText (API failed)
-        if (state.daf != null && state.daf!!.hebrewText == null && state.error == null) {
+        val offlineState = state as? com.dafyomi.pro.ui.DafState.Success
+        if (offlineState != null && offlineState.daf.hebrewText == null && (state as? com.dafyomi.pro.ui.DafState.Error) == null) {
             OfflineIndicator(dafColors = dafColors)
         }
 
@@ -153,10 +163,10 @@ private fun SettingsIcon(
     dafColors: com.dafyomi.pro.ui.theme.DafColors,
     onClick: () -> Unit
 ) {
-    Text(
-        text = "☰",
-        fontSize = 26.sp,
-        color = dafColors.textSecondary,
+    Icon(
+        imageVector = Icons.Default.Menu,
+        contentDescription = "Open settings",
+        tint = dafColors.textSecondary,
         modifier = Modifier
             .padding(16.dp)
             .clickable { onClick() }
@@ -172,6 +182,7 @@ private fun SettingsDialog(
     fontSizeMultiplier: Float = 1f,
     onFontSizeChange: (Float) -> Unit = {}
 ) {
+    val currentThemeModeUpdated by rememberUpdatedState(currentThemeMode)
     var selectedTheme by remember { mutableStateOf(currentThemeMode) }
 
     Box(
@@ -300,6 +311,10 @@ private fun ThemeOption(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$label theme${if (isSelected) ", selected" else ""}"
+            }
             .clickable { onClick() }
             .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -338,7 +353,8 @@ private fun FontSizeButton(
 ) {
     Box(
         modifier = modifier
-            .height(44.dp)
+            .height(48.dp)
+            .semantics { contentDescription = "Font size $label" }
             .background(
                 color = if (isSelected) dafColors.sky else dafColors.backgroundSecondary,
                 shape = RoundedCornerShape(8.dp)
@@ -459,6 +475,14 @@ private fun HorizontalDivider(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
 
 @Composable
 private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
+    val context = LocalContext.current
+    val reduceMotion = remember {
+        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? android.view.accessibility.AccessibilityManager
+        am?.isEnabled == true && am.isTouchExplorationEnabled
+    }
+
+    if (reduceMotion) return
+
     val infiniteTransition = rememberInfiniteTransition(label = "background")
 
     val phase by infiniteTransition.animateFloat(
@@ -480,6 +504,13 @@ private fun BackgroundAnimation(dafColors: com.dafyomi.pro.ui.theme.DafColors) {
         ),
         label = "phase2"
     )
+
+    val wavePath1 = remember(phase, phase2) {
+        Path().apply {
+            moveTo(0f, 0f)
+            // placeholder - actual path built below
+        }
+    }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
@@ -653,6 +684,7 @@ private fun SummarySection(
                     color = dafColors.sky,
                     letterSpacing = 0.3.sp,
                     modifier = Modifier
+                        .semantics { contentDescription = if (showEnglish) "Switch to Hebrew" else "Switch to English" }
                         .clickable { onToggleLanguage() }
                         .padding(bottom = 12.dp)
                 )
@@ -665,18 +697,37 @@ private fun SummarySection(
         } else {
             daf.hebrewText ?: daf.summary
         }
+        val isHebrewText = !showEnglish && daf.hebrewText != null
 
-        Text(
-            text = displayText,
-            fontSize = (18 * fontSizeMultiplier).sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = FontFamily.Serif,
-            color = dafColors.textPrimary,
-            lineHeight = (30 * fontSizeMultiplier).sp,
-            textAlign = TextAlign.Start,
-            letterSpacing = 0.2.sp,
-            modifier = Modifier.clickable { onToggleLanguage() }
-        )
+        if (isHebrewText) {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Text(
+                    text = displayText,
+                    fontSize = (18 * fontSizeMultiplier).sp,
+                    fontWeight = FontWeight.Normal,
+                    fontFamily = FontFamily.Serif,
+                    color = dafColors.textPrimary,
+                    lineHeight = (30 * fontSizeMultiplier).sp,
+                    textAlign = TextAlign.End,
+                    letterSpacing = 0.2.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggleLanguage() }
+                )
+            }
+        } else {
+            Text(
+                text = displayText,
+                fontSize = (18 * fontSizeMultiplier).sp,
+                fontWeight = FontWeight.Normal,
+                fontFamily = FontFamily.Serif,
+                color = dafColors.textPrimary,
+                lineHeight = (30 * fontSizeMultiplier).sp,
+                textAlign = TextAlign.Start,
+                letterSpacing = 0.2.sp,
+                modifier = Modifier.clickable { onToggleLanguage() }
+            )
+        }
     }
 }
 
@@ -716,6 +767,7 @@ private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafCo
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .semantics { contentDescription = "Share with friends" }
                 .border(
                     width = 1.dp,
                     color = dafColors.divider,
@@ -755,30 +807,12 @@ private fun ShareSection(daf: DafData, dafColors: com.dafyomi.pro.ui.theme.DafCo
                     )
                 }
 
-                Canvas(modifier = Modifier.size(32.dp)) {
-                    val strokeWidth = 2.5.dp.toPx()
-                    drawLine(
-                        color = dafColors.textSecondary,
-                        start = Offset(8f, 22f),
-                        end = Offset(22f, 8f),
-                        strokeWidth = strokeWidth,
-                        cap = StrokeCap.Round
-                    )
-                    drawLine(
-                        color = dafColors.textSecondary,
-                        start = Offset(22f, 8f),
-                        end = Offset(22f, 16f),
-                        strokeWidth = strokeWidth,
-                        cap = StrokeCap.Round
-                    )
-                    drawLine(
-                        color = dafColors.textSecondary,
-                        start = Offset(22f, 8f),
-                        end = Offset(14f, 8f),
-                        strokeWidth = strokeWidth,
-                        cap = StrokeCap.Round
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Rounded.Share,
+                    contentDescription = null, // decorative, parent has contentDescription
+                    tint = dafColors.textSecondary,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }

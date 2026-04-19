@@ -1,5 +1,7 @@
 package com.dafyomi.pro.domain
 
+import android.util.LruCache
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 
 /**
@@ -13,8 +15,8 @@ import java.time.LocalDate
 class DafRepository {
 
     private val sefariaService = SefariaApiService()
-    private val textCache = mutableMapOf<String, DafTextResult>()
-    private val summaryCache = mutableMapOf<String, String>()
+    private val textCache = LruCache<String, DafTextResult>(20)
+    private val summaryCache = LruCache<String, String>(20)
 
     /**
      * Gets today's Daf Yomi data with actual text.
@@ -47,19 +49,26 @@ class DafRepository {
         val cacheKey = "${masechet.english}.$dafNumber"
 
         // Check cache first
-        textCache[cacheKey]?.let { return it }
+        textCache.get(cacheKey)?.let { return it }
 
-        // Try Sefaria API
-        try {
-            val result = sefariaService.getDafText(masechet.english, dafNumber)
-            if (result != null) {
-                textCache[cacheKey] = result
-                return result
-            }
-        } catch (e: Exception) {
-            // Sefaria unavailable, fall through
+        // Try Sefaria API with retry
+        val result = getDafTextWithRetry(masechet.english, dafNumber)
+        if (result != null) {
+            textCache.put(cacheKey, result)
         }
+        return result
+    }
 
+    private suspend fun getDafTextWithRetry(masechet: String, daf: Int): DafTextResult? {
+        repeat(3) { attempt ->
+            try {
+                val result = sefariaService.getDafText(masechet, daf)
+                if (result != null) return result
+            } catch (e: Exception) {
+                // Sefaria unavailable, fall through
+            }
+            if (attempt < 2) delay(1000L * (attempt + 1)) // 1s, 2s backoff
+        }
         return null
     }
 
@@ -68,10 +77,10 @@ class DafRepository {
      */
     private fun getSummaryForDaf(masechet: Masechet, dafNumber: Int): String {
         val key = "${masechet.english}$dafNumber"
-
-        return summaryCache.getOrPut(key) {
-            generateSummary(masechet, dafNumber)
-        }
+        summaryCache.get(key)?.let { return it }
+        val summary = generateSummary(masechet, dafNumber)
+        summaryCache.put(key, summary)
+        return summary
     }
 
     /**

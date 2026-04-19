@@ -8,10 +8,13 @@ import com.dafyomi.pro.domain.DafData
 import com.dafyomi.pro.domain.SettingsManager
 import com.dafyomi.pro.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -22,11 +25,11 @@ import java.time.LocalDate
  * @property daf The fetched DafData, or null if not yet loaded or on error
  * @property error Error message string, or null if no error
  */
-data class DafState(
-    val isLoading: Boolean = true,
-    val daf: DafData? = null,
-    val error: String? = null
-)
+sealed class DafState {
+    object Loading : DafState()
+    data class Success(val daf: DafData) : DafState()
+    data class Error(val message: String, val cachedDaf: DafData? = null) : DafState()
+}
 
 /**
  * ViewModel for the Daf Yomi screen.
@@ -40,7 +43,7 @@ class DafViewModel(
     private val settingsManager: SettingsManager
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(DafState())
+    private val _state = MutableStateFlow<DafState>(DafState.Loading)
     val state: StateFlow<DafState> = _state.asStateFlow()
 
     private val _themeMode = MutableStateFlow(ThemeMode.AUTO)
@@ -52,10 +55,30 @@ class DafViewModel(
     // Track the date we last loaded - used to detect day changes while app is open
     private var lastLoadedDate: LocalDate = LocalDate.MIN
 
+    private var dateDetectorJob: Job? = null
+
     init {
         loadSavedSettings()
         loadTodaysDaf()
         startDateChangeDetector()
+    }
+
+    private fun startDateChangeDetector() {
+        dateDetectorJob?.cancel()
+        dateDetectorJob = viewModelScope.launch {
+            while (isActive) {
+                delay(60_000)
+                val today = LocalDate.now()
+                if (today != lastLoadedDate) {
+                    loadTodaysDaf()
+                }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        dateDetectorJob?.cancel()
     }
 
     /**
@@ -95,33 +118,17 @@ class DafViewModel(
      * Periodically checks if the date has changed since last load.
      * When the day rolls over while the app is open, reload the daf.
      */
-    private fun startDateChangeDetector() {
-        viewModelScope.launch {
-            while (true) {
-                kotlinx.coroutines.delay(60_000) // Check every minute
-                val today = LocalDate.now()
-                if (today != lastLoadedDate) {
-                    loadTodaysDaf()
-                }
-            }
-        }
-    }
-
-    /**
-     * Loads today's Daf Yomi data.
-     * Sets loading state, fetches from repository, updates state.
-     */
     fun loadTodaysDaf() {
         viewModelScope.launch {
-            _state.value = DafState(isLoading = true)
+            _state.value = DafState.Loading
             try {
                 val daf = withContext(Dispatchers.IO) {
                     repository.getTodaysDaf()
                 }
                 lastLoadedDate = LocalDate.now()
-                _state.value = DafState(isLoading = false, daf = daf)
+                _state.value = DafState.Success(daf)
             } catch (e: Exception) {
-                _state.value = DafState(isLoading = false, error = e.message)
+                _state.value = DafState.Error(e.message ?: "Unknown error")
             }
         }
     }

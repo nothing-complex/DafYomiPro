@@ -20,7 +20,7 @@ val SandLight2 = Color(0xFFE8DFD0)      // Secondary sand - warm beige
 val SandLight3 = Color(0xFFECD8B8)       // Accent sand - raffia
 
 val StoneLight = Color(0xFF8B8680)       // Primary text - warm gray
-val StoneMuted = Color(0xFFA69F96)       // Secondary text - taupe
+val StoneMuted = Color(0xFF796F66)       // Secondary text - taupe (WCAG AA compliant on SandLight)
 
 val SkyLight = Color(0xFFA9D4E3)         // Primary accent - soft blue
 val SkyLight2 = Color(0xFFB8E4EC)         // Secondary sky - celeste

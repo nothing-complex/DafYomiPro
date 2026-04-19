@@ -19,7 +19,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import java.time.LocalTime
-import androidx.compose.runtime.withFrameMillis
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 // ============================================================================
 // COMPOSITION LOCALS - For theme-aware values
@@ -125,9 +126,8 @@ fun DafYomiProTheme(
     var currentHour by remember { mutableIntStateOf(LocalTime.now().hour) }
 
     LaunchedEffect(Unit) {
-        // Update every minute
-        while (true) {
-            kotlinx.coroutines.delay(60_000)
+        while (isActive) {
+            delay(60_000)
             currentHour = LocalTime.now().hour
         }
     }

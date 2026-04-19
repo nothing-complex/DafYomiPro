@@ -21,7 +21,6 @@ object DafCalculator {
 
     // Cycle start: January 5, 2020 (14th cycle began with Berachot 2)
     private val CYCLE_START = LocalDate.of(2020, 1, 5)
-    private const val CYCLE_LENGTH = 2713  // Actual sum of masechet data
 
     /**
      * Complete list of 38 masechtot in Daf Yomi cycle.
@@ -83,6 +82,9 @@ object DafCalculator {
      * The scan starts at -1 so the running sum gives inclusive end indices.
      */
     private val cumulativeDafs: List<Int> = masechetData.scan(-1) { acc, m -> acc + m.dafCount }
+
+    // Derived from masechetData so it is always in sync
+    private val CYCLE_LENGTH: Int = masechetData.sumOf { it.dafCount }
 
     /**
      * Returns the DafData for a given date.

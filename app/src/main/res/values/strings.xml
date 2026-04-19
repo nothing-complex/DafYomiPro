@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Daf Yomi Pro</string>
+    <string name="settings">Settings</string>
+    <string name="settings_open">Open settings</string>
+    <string name="appearance">APPEARANCE</string>
+    <string name="text_size">TEXT SIZE</string>
+    <string name="theme_light">Off (Light)</string>
+    <string name="theme_dark">On (Dark)</string>
+    <string name="theme_auto">Auto</string>
+    <string name="font_size_small">Small text size</string>
+    <string name="font_size_medium">Medium text size</string>
+    <string name="font_size_large">Large text size</string>
+    <string name="tap_for_english">tap for English</string>
+    <string name="tap_for_hebrew">tap for עברית</string>
+    <string name="offline_cached">Offline - showing cached text</string>
+    <string name="share_with_friends">Share with friends</string>
+    <string name="share_subtitle">Spread the Torah learning</string>
+    <string name="share_via">Share via</string>
+    <string name="loading_daf">Loading today\'s daf...</string>
+    <string name="error_occurred">An error occurred</string>
+    <string name="daf_yomi_pro_label">Daf Yomi Pro</string>
 </resources>
